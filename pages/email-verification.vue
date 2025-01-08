@@ -48,12 +48,12 @@
           toast.success("Email verified");
           clearInterval(intervalRef); // Clear the interval
           setTimeout(() => {
-            router.push({ name: "account" });
+            router.push({ name: "verify" });
           }, 2000);
         }
       } else {
         clearInterval(intervalRef);
-        router.push({ name: "login" });
+        router.push({ name: "/" });
       }
     }, 2000);
   }
@@ -66,8 +66,8 @@
         <CardTitle>Email verification</CardTitle>
       </CardHeader>
       <CardContent>
-        Thank you for joining Cordtree Oncology! A verification link has been sent to your email for
-        security purposes. Check your inbox or spam folder. Need a new link? Click below.
+        A verification link has been sent to your email for security purposes. Check your inbox or
+        spam folder. Need a new link? Click below.
       </CardContent>
       <CardFooter>
         <Button @click="sendVerificationEmail" class="w-full">Resend verification email</Button>
