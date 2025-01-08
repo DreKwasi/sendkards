@@ -1,12 +1,10 @@
 import {
   setPersistence,
   signOut,
-
   onAuthStateChanged,
   updateProfile,
   type Auth,
   browserLocalPersistence,
-
   signInWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -65,6 +63,7 @@ export const useFirebaseAuth = () => {
       response = { status: "success", message: "Login successful" };
       router.push({ name: "account" });
     } catch (error: any) {
+      console.log(error);
       logInErrCase(error.code);
       response = { status: "error", message: errMsg.value };
     } finally {
