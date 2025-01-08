@@ -1,17 +1,13 @@
 import {
   setPersistence,
   signOut,
-  browserSessionPersistence,
-  GoogleAuthProvider,
+
   onAuthStateChanged,
   updateProfile,
   type Auth,
   browserLocalPersistence,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
+
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
 } from "firebase/auth";
