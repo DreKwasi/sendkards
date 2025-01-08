@@ -23,7 +23,13 @@ export default defineNuxtConfig({
       measurementId: process.env.NUXT_MEASUREMENTID,
     },
   },
-  modules: ["@nuxtjs/tailwindcss", "shadcn-nuxt", "@nuxtjs/color-mode"],
+  modules: [
+    "@nuxtjs/tailwindcss",
+    "shadcn-nuxt",
+    "@nuxtjs/color-mode",
+    "@nuxt/image",
+    "@pinia/nuxt",
+  ],
   shadcn: {
     /**
      * Prefix for all the imported component
