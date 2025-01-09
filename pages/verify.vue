@@ -26,10 +26,12 @@
   import { toTypedSchema } from "@vee-validate/zod";
   import { useForm } from "vee-validate";
   import * as z from "zod";
+  import { toast } from "vue-sonner";
 
+  const { verifySendKard } = useVerifySendKard();
   const formSchema = toTypedSchema(
     z.object({
-      orderId: z.string().min(2).max(50),
+      voucherId: z.string().min(2).max(50),
     })
   );
 
@@ -37,7 +39,19 @@
     validationSchema: formSchema,
   });
 
-  const onSubmit = handleSubmit((values) => {});
+  const onSubmit = handleSubmit(async (values) => {
+    const response = (await verifySendKard(values.voucherId)) as {
+      status: string;
+      message: string;
+      data: {};
+    } | null;
+    if (response === null) toast.error("Verification failed");
+    if (response!.status === "success") {
+      toast.success(response!.message);
+    } else if (response!.status === "verified") {
+      toast.info(response!.message);
+    }
+  });
 </script>
 <template>
   <div class="grid place-items-center h-[90vh]">
@@ -48,7 +62,7 @@
       </CardHeader>
       <CardContent>
         <form class="w-full space-y-6" @submit="onSubmit">
-          <FormField v-slot="{ componentField }" name="orderId">
+          <FormField v-slot="{ componentField }" name="voucherId">
             <FormItem>
               <FormLabel>Enter Gift Card ID</FormLabel>
               <FormControl>
