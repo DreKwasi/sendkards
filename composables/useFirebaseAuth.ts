@@ -61,7 +61,7 @@ export const useFirebaseAuth = () => {
 
       userAuth.value = credential.user;
       response = { status: "success", message: "Login successful" };
-      router.push({ name: "account" });
+      router.push({ name: "verify" });
     } catch (error: any) {
       console.log(error);
       logInErrCase(error.code);
