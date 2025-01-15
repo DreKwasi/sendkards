@@ -4,10 +4,11 @@ import {
   onAuthStateChanged,
   updateProfile,
   type Auth,
-  browserLocalPersistence,
+  browserSessionPersistence,
   signInWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { type CreateUserCredentials, type UserLoginCredentials } from "../types/firebaseAuthTypes";
 import { ref as Ref, uploadBytes, getDownloadURL, type FirebaseStorage } from "firebase/storage";
@@ -30,8 +31,8 @@ export const useFirebaseAuth = () => {
   const { userAuth, userRoles, isSuperAdmin } = storeToRefs(userStore);
 
   const errMsg = useState("errMsg", () => "");
-
   let response = { status: "", message: "" };
+
   const logInErrCase = (code: string) => {
     const errorMessages: Record<string, string> = {
       "auth/invalid-email": "Your email or password may be incorrect",
@@ -48,6 +49,32 @@ export const useFirebaseAuth = () => {
     errMsg.value = errorMessages[code];
   };
 
+  const createUser = async (credentials: CreateUserCredentials) => {
+    loading.value = true;
+    const { email, password, first_name, last_name, phone_number } = credentials;
+    let response: { status: string; message: string } = { status: "", message: "" };
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      updateProfile(auth.currentUser!, {
+        displayName: `${first_name} ${last_name}`,
+      });
+      const userDocRef = doc(db, "users", auth.currentUser!.uid);
+      await setDoc(userDocRef, { phone_number: phone_number }, { merge: true });
+      userAuth.value = auth.currentUser as User;
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+        logEvent(analytics, "sign_up");
+      }
+      response = { status: "success", message: "User created successfully" };
+    } catch (error: any) {
+      logInErrCase(error.code);
+      response = { status: "error", message: errMsg.value };
+    } finally {
+      loading.value = false;
+      return response;
+    }
+  };
+
   const userLogin = async (credentials: UserLoginCredentials) => {
     loading.value = true;
     const { email, password } = credentials;
@@ -55,13 +82,13 @@ export const useFirebaseAuth = () => {
     let response: { status: string; message: string } = { status: "", message: "" };
 
     try {
-      await setPersistence(auth, browserLocalPersistence);
+      await setPersistence(auth, browserSessionPersistence);
       const credential = await signInWithEmailAndPassword(auth, email, password);
-      logEvent(analytics, "login");
 
       userAuth.value = credential.user;
       response = { status: "success", message: "Login successful" };
-      router.push({ name: "verify" });
+      logEvent(analytics, "login");
+      router.push({ name: "dashboard" });
     } catch (error: any) {
       console.log(error);
       logInErrCase(error.code);
@@ -138,6 +165,7 @@ export const useFirebaseAuth = () => {
 
   return {
     userLogin,
+    createUser,
     getUser,
     userLogout,
     getUserToken,
