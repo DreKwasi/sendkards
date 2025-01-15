@@ -24,12 +24,34 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       });
     }
   }
-  if (user.emailVerified && to.name === "email-verification") {
+  if (!user.emailVerified) {
+    if (to.name !== "email-verification") {
+      return navigateTo({
+        path: "/email-verification",
+        query: {
+          redirect: to.fullPath,
+        },
+      });
+    }
+  }
+  // Check for org_id param in the route and validate it against user claims
+  if (to.params.org_id === "undefined") {
     return navigateTo({
-      path: "/verify",
-      query: {
-        redirect: to.fullPath,
-      },
+      path: "/onboarding",
     });
+  }
+  if (to.params.org_id) {
+    const { getUserClaims } = usePermission(); // Access the Firebase auth instance
+    const { roles, isSuperAdmin } = await getUserClaims();
+
+    // If user roles do not include the org_id, redirect to "unauthorized" page
+    if (!isSuperAdmin && (!roles || !roles[to.params.org_id as string])) {
+      return navigateTo({
+        path: "/onboarding",
+        query: {
+          redirect: to.fullPath,
+        },
+      });
+    }
   }
 });
