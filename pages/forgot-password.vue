@@ -26,7 +26,7 @@
     FormLabel,
     FormMessage,
   } from "@/components/ui/form";
-import { toast } from "vue-sonner";
+  import { toast } from "vue-sonner";
   const formSchema = toTypedSchema(
     z.object({
       email: z.string({ message: "Email is required" }).email("Enter a valid email"),
@@ -53,8 +53,8 @@ import { toast } from "vue-sonner";
         <NuxtLink
           to="/"
           class="cursor-pointer flex-row flex space-x-2 items-end justify-center mb-4 tracking-wider">
-          <NuxtImg src="/logo" width="100" />
-          <span class="text-xs font-bold">PIVOTS</span>
+          <span class="text-xs font-bold">Sendkards</span>
+          <span class="text-xs font-bold">Verify</span>
         </NuxtLink>
         <CardTitle>Reset your password</CardTitle>
         <CardDescription>Enter your email to receive a link to reset your password</CardDescription>
@@ -75,9 +75,9 @@ import { toast } from "vue-sonner";
         </form>
         <Separator class="my-2" />
 
-        <NuxtLink to="/login"
-          ><Button variant="outline" class="w-full">Go back to sign in</Button></NuxtLink
-        >
+        <NuxtLink to="/">
+          <Button variant="outline" class="w-full">Go back to sign in</Button>
+        </NuxtLink>
       </CardContent>
     </Card>
   </div>
