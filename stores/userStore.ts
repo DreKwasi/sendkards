@@ -11,6 +11,6 @@ export const useUserStore = defineStore("userStore", () => {
   const userRoles = ref<Record<string, string> | null>(null);
   const isSuperAdmin = ref<Boolean>(false);
   const userProfile = ref<UserDb | null>(null);
-
-  return { userAuth, isEmailVerified, userRoles, isSuperAdmin, userProfile };
+  const isProfileComplete = ref<Boolean>(false);
+  return { userAuth, isEmailVerified, userRoles, isSuperAdmin, userProfile, isProfileComplete };
 });
