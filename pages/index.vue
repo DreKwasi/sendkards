@@ -78,6 +78,14 @@
             <Button variant="link">Forgot password?</Button>
           </NuxtLink>
           <Button class="w-full" type="submit">Login with email</Button>
+          <div class="w-full flex flex-row space-y-2 items-center justify-center">
+            <p>
+              No account?
+              <NuxtLink to="/signup">
+                <Button variant="link" class="py-0">Sign up with email</Button>
+              </NuxtLink>
+            </p>
+          </div>
         </form>
       </CardContent>
     </Card>
