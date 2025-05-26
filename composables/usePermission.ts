@@ -24,19 +24,17 @@ export const usePermission = () => {
 
   //   Get user claims
   const getUserClaims = async (): Promise<{
-    roles: Record<string, string> | null;
     isSuperAdmin: Boolean;
   }> => {
     try {
-      if (!userRoles.value) {
+      if (!isSuperAdmin.value) {
         const idTokenResult = await auth.currentUser!.getIdTokenResult();
-        userRoles.value = (idTokenResult.claims.roles as Record<string, string>) || null;
         isSuperAdmin.value = (idTokenResult.claims.isSuperAdmin as Boolean) || false;
       }
-      return { roles: userRoles.value, isSuperAdmin: isSuperAdmin.value };
+      return { isSuperAdmin: isSuperAdmin.value };
     } catch (error) {
       toast.error("Failed to fetch user roles");
-      return { roles: null, isSuperAdmin: false };
+      return { isSuperAdmin: false };
     }
   };
 

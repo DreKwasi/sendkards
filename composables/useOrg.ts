@@ -1,42 +1,23 @@
 import { type Auth } from "firebase/auth";
-import { logEvent, type Analytics } from "firebase/analytics";
-import {
-  addDoc,
-  collection,
-  doc,
-  documentId,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-  type Firestore,
-} from "firebase/firestore";
+
 import { httpsCallable, type Functions } from "firebase/functions";
-import { toast } from "vue-sonner";
-import type { OrgType } from "~/types/orgTypes";
+import type { OrgType } from "~/types/org.types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "~/database.types";
 
 export const useOrg = () => {
-  const { $auth, $analytics, $db, $functions } = useNuxtApp();
+  const { $auth, $functions, $supabase } = useNuxtApp();
   const auth = $auth as Auth;
+  const supabaseClient = $supabase as SupabaseClient<Database, "api", Database["api"]>;
   const functions = $functions as Functions;
-  const analytics = $analytics as Analytics;
-  const db = $db as Firestore;
 
   const feedbackStore = useFeedbackStore();
   const { loading } = storeToRefs(feedbackStore);
-  const userStore = useUserStore();
-  const { userRoles, isSuperAdmin } = storeToRefs(userStore);
   const orgStore = useOrgStore();
   const { orgList, org } = storeToRefs(orgStore);
   let response = { status: "", msg: "" };
-  const ORGCOLLECTIONREF = collection(db, "organizations");
 
-  const { isUserAuthorized } = useFirebaseAuth();
-
-  const inviteUser = async (inviteUserEmail: string, organizationId: string, role: string) => {
+  const inviteUser = async (inviteUserEmail: string, organizationId: number, role: string) => {
     try {
       const inviteUserCallable = httpsCallable(functions, "inviteUser");
       response = (
@@ -56,37 +37,17 @@ export const useOrg = () => {
   };
 
   const getAllOrgs = async () => {
-    let orgSnapshot;
     try {
-      if (isSuperAdmin.value) {
-        orgSnapshot = await getDocs(ORGCOLLECTIONREF);
-      } else {
-        if (!userRoles.value) {
-          return null;
-        }
-        const approvedOrgs = Object.keys(userRoles.value as {});
-        console.log(approvedOrgs);
-        const q = query(ORGCOLLECTIONREF, where(documentId(), "in", approvedOrgs));
-        orgSnapshot = await getDocs(q);
+      const { data, error } = await supabaseClient.from("organizations").select("*");
+      if (error) {
+        throw new Error(error.message);
       }
-
-      if (!orgSnapshot.empty) {
-        orgList.value = orgSnapshot.docs.map((orgDoc) => {
-          return { ...orgDoc.data(), id: orgDoc.id } as OrgType;
-        });
-      }
+      orgList.value = data.map((org) => {
+        return { ...org, id: org.id } as OrgType;
+      });
     } catch (error) {
       console.log(error);
     }
-  };
-
-  const checkUniqueOrgName = async (name: string) => {
-    const q = query(
-      ORGCOLLECTIONREF,
-      where("search_field", "==", name.toLowerCase().replace(/\s/g, ""))
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.empty;
   };
 
   const createOrg = async (data: { name: string; location: string }) => {
@@ -94,58 +55,46 @@ export const useOrg = () => {
     response = { status: "", msg: "" };
 
     try {
-      const unique = await checkUniqueOrgName(data.name);
-      console.log(unique);
+      const { data: orgData, error } = await supabaseClient
+        .from("organizations")
+        .insert([{ ...data, created_by: auth.currentUser?.uid }])
+        .select()
+        .maybeSingle();
 
-      if (!isSuperAdmin.value) {
-        response = {
-          status: "error",
-          msg: "You do not have the permission to create an organization. Contact Admin",
-        };
-      } else if (!unique) {
-        response = {
-          status: "error",
-          msg: "Organization has already been created",
-        };
-      } else {
-        const docRef = await addDoc(ORGCOLLECTIONREF, {
-          ...data,
-          search_field: data.name.toLowerCase().replace(/\s/g, ""),
-          created_date: serverTimestamp(),
-          updated_date: serverTimestamp(),
-        });
-        response = {
-          status: "success",
-          msg: "Account created successfully",
-        };
+      if (error) {
+        throw new Error(error.message);
       }
+      if (!orgData) {
+        throw new Error("Organization creation failed");
+      }
+
+      org.value = { ...orgData, id: orgData.id } as OrgType;
+      response = { status: "success", msg: "Organization created successfully" };
     } catch (error: any) {
-      response = {
-        status: "error",
-        msg: error.message,
-      };
+      response = { status: "error", msg: error.message };
     } finally {
       loading.value = false;
       return response;
     }
   };
 
-  const getOrg = async (orgId: string) => {
-    if (!isUserAuthorized(orgId)) {
-      toast.error("You do not have access to this organization");
-      return;
-    }
-
-    loading.value = true;
+  const getOrg = async (orgId: number) => {
     try {
-      const orgDocRef = doc(ORGCOLLECTIONREF, orgId);
-      const docSnap = await getDoc(orgDocRef);
-
-      if (docSnap.exists()) {
-        org.value = { ...docSnap.data(), id: docSnap.id } as OrgType;
+      const { data, error } = await supabaseClient
+        .from("organizations")
+        .select("*")
+        .eq("id", orgId)
+        .maybeSingle();
+      console.log(data);
+      if (error) {
+        console.log(error);
+        throw new Error(error.message);
       }
-    } finally {
-      loading.value = false;
+      if (data) {
+        org.value = { ...data, id: data.id } as OrgType;
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
