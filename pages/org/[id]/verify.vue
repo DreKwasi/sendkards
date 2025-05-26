@@ -27,20 +27,68 @@
   import { useForm } from "vee-validate";
   import * as z from "zod";
   import { toast } from "vue-sonner";
+  import { ref, watch } from "vue";
 
+  const route = useRoute();
   const { verifySendKard } = useVerifySendKard();
   const formSchema = toTypedSchema(
     z.object({
-      voucherId: z.string().min(2).max(50),
+      voucherId: z
+        .string()
+        .length(19)
+        .regex(
+          /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/,
+          "ID must be in format XXXX-XXXX-XXXX-XXXX"
+        ),
     })
   );
 
-  const { handleSubmit } = useForm({
+  const { handleSubmit, setFieldValue } = useForm({
     validationSchema: formSchema,
+    initialValues: {
+      voucherId: "",
+    },
   });
 
+  const formatVoucherId = (value: string) => {
+    // Remove non-alphanumeric characters
+    const cleanValue = value.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+
+    // Format with dashes
+    let formatted = "";
+    for (let i = 0; i < cleanValue.length && i < 16; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formatted += "-";
+      }
+      formatted += cleanValue[i];
+    }
+
+    return formatted;
+  };
+
+  const handleInput = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const cursorPosition = input.selectionStart || 0;
+    const valueBeforeFormat = input.value;
+
+    // Format the value
+    const formattedValue = formatVoucherId(input.value);
+
+    // Only update if the value changed
+    if (valueBeforeFormat !== formattedValue) {
+      setFieldValue("voucherId", formattedValue);
+
+      // Calculate new cursor position, accounting for added dashes
+      setTimeout(() => {
+        const newPosition = cursorPosition + (formattedValue.length - valueBeforeFormat.length);
+        input.setSelectionRange(newPosition, newPosition);
+      }, 0);
+    }
+  };
+
+
   const onSubmit = handleSubmit(async (values) => {
-    const response = (await verifySendKard(values.voucherId)) as {
+    const response = (await verifySendKard(values.voucherId, Number(route.params["id"]))) as {
       status: string;
       message: string;
       data: {};
@@ -66,9 +114,16 @@
             <FormItem>
               <FormLabel>Enter Gift Card ID</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="1239801672" v-bind="componentField" />
+                <Input
+                  type="text"
+                  placeholder="XXXX-XXXX-XXXX-XXXX"
+                  v-bind="componentField"
+                  @input="handleInput"
+                  maxlength="19" />
               </FormControl>
-              <FormDescription> Once you hit submit, we will verify the gift card </FormDescription>
+              <FormDescription
+                >Enter the 16-character ID (format: XXXX-XXXX-XXXX-XXXX)</FormDescription
+              >
               <FormMessage />
             </FormItem>
           </FormField>
