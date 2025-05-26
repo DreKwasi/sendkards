@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { type Auth, type User } from "firebase/auth";
-import type { UserDb } from "~/types/userTypes";
+import type { VendorDb } from "~/types/vendor.types";
 
 export const useUserStore = defineStore("userStore", () => {
   const { $auth } = useNuxtApp();
@@ -10,7 +10,7 @@ export const useUserStore = defineStore("userStore", () => {
   const isEmailVerified = ref<Boolean>(false);
   const userRoles = ref<Record<string, string> | null>(null);
   const isSuperAdmin = ref<Boolean>(false);
-  const userProfile = ref<UserDb | null>(null);
+  const userProfile = ref<VendorDb | null>(null);
   const isProfileComplete = ref<Boolean>(false);
   return { userAuth, isEmailVerified, userRoles, isSuperAdmin, userProfile, isProfileComplete };
 });
