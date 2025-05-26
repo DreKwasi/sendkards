@@ -22,6 +22,8 @@ export default defineNuxtConfig({
       messagingSenderId: process.env.NUXT_MESSAGINGSENDERID,
       appId: process.env.NUXT_APPID,
       measurementId: process.env.NUXT_MEASUREMENTID,
+      supabaseUrl: process.env.NUXT_SUPABASE_URL,
+      supabaseApi: process.env.NUXT_SUPABASE_API,
     },
   },
   modules: [
@@ -51,5 +53,3 @@ export default defineNuxtConfig({
     storageKey: "nuxt-color-mode",
   },
 });
-
-
