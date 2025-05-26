@@ -85,7 +85,6 @@ export const useOrg = () => {
         .select("*")
         .eq("id", orgId)
         .maybeSingle();
-      console.log(data);
       if (error) {
         console.log(error);
         throw new Error(error.message);
