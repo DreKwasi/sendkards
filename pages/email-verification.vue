@@ -48,7 +48,7 @@
           toast.success("Email verified");
           clearInterval(intervalRef); // Clear the interval
           setTimeout(() => {
-            router.push({ name: "verify" });
+            router.push({ name: "account" });
           }, 2000);
         }
       } else {

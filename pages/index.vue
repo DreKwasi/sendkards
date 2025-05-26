@@ -27,7 +27,6 @@
     const response = await userLogin(values);
     if (response.status === "success") {
       toast.success("Login successful");
-      navigateTo("/verify");
     } else {
       toast.error(response.message);
     }
