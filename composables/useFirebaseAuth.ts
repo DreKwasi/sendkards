@@ -14,14 +14,12 @@ import { type CreateUserCredentials, type UserLoginCredentials } from "../types/
 import { ref as Ref, uploadBytes, getDownloadURL, type FirebaseStorage } from "firebase/storage";
 import { logEvent, type Analytics } from "firebase/analytics";
 import { type User } from "firebase/auth";
-import { doc, setDoc, type Firestore } from "firebase/firestore";
 
 export const useFirebaseAuth = () => {
-  const { $auth, $analytics, $storage, $db } = useNuxtApp();
+  const { $auth, $analytics, $storage, $supabase } = useNuxtApp();
   const storage = $storage as FirebaseStorage;
   const auth = $auth as Auth;
   const analytics = $analytics as Analytics;
-  const db = $db as Firestore;
   const router = useRouter();
 
   const feedbackStore = useFeedbackStore();
@@ -29,6 +27,8 @@ export const useFirebaseAuth = () => {
 
   const userStore = useUserStore();
   const { userAuth, userRoles, isSuperAdmin } = storeToRefs(userStore);
+
+  const { completeUserProfile } = useAPI();
 
   const errMsg = useState("errMsg", () => "");
   let response = { status: "", message: "" };
@@ -55,16 +55,14 @@ export const useFirebaseAuth = () => {
     let response: { status: string; message: string } = { status: "", message: "" };
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      updateProfile(auth.currentUser!, {
+      await updateProfile(auth.currentUser!, {
         displayName: `${first_name} ${last_name}`,
       });
-      const userDocRef = doc(db, "users", auth.currentUser!.uid);
-      await setDoc(userDocRef, { phone_number: phone_number }, { merge: true });
+      // Update user profile in supabase
+      await completeUserProfile({ first_name, last_name, phone_number });
       userAuth.value = auth.currentUser as User;
-      if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser);
-        logEvent(analytics, "sign_up");
-      }
+      await sendEmailVerification(auth.currentUser!);
+      logEvent(analytics, "sign_up");
       response = { status: "success", message: "User created successfully" };
     } catch (error: any) {
       logInErrCase(error.code);
@@ -88,7 +86,7 @@ export const useFirebaseAuth = () => {
       userAuth.value = credential.user;
       response = { status: "success", message: "Login successful" };
       logEvent(analytics, "login");
-      router.push({ name: "dashboard" });
+      router.push({ name: "account" });
     } catch (error: any) {
       console.log(error);
       logInErrCase(error.code);
@@ -159,10 +157,6 @@ export const useFirebaseAuth = () => {
     }
   };
 
-  const isUserAuthorized = async (orgId: string) => {
-    return isSuperAdmin || !!userRoles.value![orgId];
-  };
-
   return {
     userLogin,
     createUser,
@@ -171,6 +165,5 @@ export const useFirebaseAuth = () => {
     getUserToken,
     resetPassword,
     emailVerificationHandler,
-    isUserAuthorized,
   };
 };

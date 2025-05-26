@@ -1,56 +1,65 @@
 import { type Auth, updateProfile } from "firebase/auth";
-import { Firestore, onSnapshot, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { logEvent, type Analytics } from "firebase/analytics";
-import { httpsCallable, type Functions, type HttpsCallableResult } from "firebase/functions";
-import type { UserDb } from "~/types/userTypes";
+import type { VendorDb } from "~/types/vendor.types";
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "~/database.types";
 
 export const useUserDb = () => {
-  const { $auth, $analytics, $db, $functions } = useNuxtApp();
+  const { $auth, $analytics, $supabase } = useNuxtApp();
   const auth = $auth as Auth;
   const analytics = $analytics as Analytics;
-  const db = $db as Firestore;
-  const functions = $functions as Functions;
-
+  const supabase = $supabase as SupabaseClient<Database, "api", Database["api"]>;
   let response = { status: "", message: "" };
   const userStore = useUserStore();
   const { isProfileComplete, userProfile, userAuth } = storeToRefs(userStore);
 
-  const subscribeToUserProfile = () => {
-    const userDocRef = doc(db, "users", auth.currentUser!.uid);
-    return onSnapshot(
-      userDocRef,
-      (doc) => {
-        if (doc.exists()) {
-          userProfile.value = { ...doc.data(), id: doc.id } as UserDb;
-        } else {
-          userProfile.value = null;
-        }
-      },
-      (error) => {}
-    );
+  const fetchUserProfile = async () => {
+    const { data, error } = await supabase
+      .from("vendors")
+      .select("*")
+      .eq("id", auth.currentUser!.uid)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user profile:", error);
+      userProfile.value = null;
+    } else if (data) {
+      userProfile.value = { ...data, uid: data.uid } as VendorDb;
+    } else {
+      userProfile.value = null;
+    }
   };
 
-  const profileComplete = async (profileDetails: {
-    first_name: string;
-    last_name: string;
-    phone_number: string;
-    date: Date;
-  }) => {
+  const updateDBProfile = async (
+    p0: unknown,
+    p1: { displayName: string },
+    profileDetails: {
+      first_name: string;
+      last_name: string;
+      phone_number: string;
+      date: Date;
+    }
+  ) => {
     try {
-      const userProfileRef = doc(db, "users", auth.currentUser!.uid);
-      const completeUserProfile = httpsCallable(functions, "completeUserProfile");
       updateProfile(auth.currentUser!, {
         displayName: `${profileDetails.first_name} ${profileDetails.last_name}`,
       });
       userAuth.value = auth.currentUser!;
-      updateDoc(userProfileRef, {
-        ...profileDetails,
-        profile_completed: true,
-        created_date: serverTimestamp(),
-        updated_date: serverTimestamp(),
-      });
-      await completeUserProfile();
-      logEvent(analytics, "profile_completed");
+
+      const { error } = await supabase
+        .from("vendors")
+        .update({
+          ...profileDetails,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("uid", auth.currentUser!.uid);
+
+      if (error) {
+        console.error("Error updating profile:", error);
+        response = { status: "error", message: "Something went wrong. Please retry" };
+        return response;
+      }
+
       isProfileComplete.value = true;
       const userSessionStorageString = JSON.stringify({
         isProfileComplete: isProfileComplete.value,
@@ -59,10 +68,11 @@ export const useUserDb = () => {
       response = { status: "success", message: "Profile saved successfully" };
     } catch (error) {
       console.error(error);
-      response = { status: "success", message: "Something went wrong. Please retry" };
+      response = { status: "error", message: "Something went wrong. Please retry" };
     } finally {
       return response;
     }
   };
-  return { profileComplete, subscribeToUserProfile };
+
+  return { updateDBProfile, fetchUserProfile };
 };
