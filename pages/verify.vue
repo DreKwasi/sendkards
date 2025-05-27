@@ -22,15 +22,24 @@
     FormLabel,
     FormMessage,
   } from "@/components/ui/form";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+  } from "@/components/ui/dropdown-menu";
+  import { CircleUser } from "lucide-vue-next";
   import { Input } from "@/components/ui/input";
   import { toTypedSchema } from "@vee-validate/zod";
   import { useForm } from "vee-validate";
   import * as z from "zod";
   import { toast } from "vue-sonner";
-  import { ref, watch } from "vue";
 
-  const route = useRoute();
   const { verifySendKard } = useVerifySendKard();
+  const { userLogout } = useFirebaseAuth();
+
   const formSchema = toTypedSchema(
     z.object({
       voucherId: z
@@ -86,9 +95,8 @@
     }
   };
 
-
   const onSubmit = handleSubmit(async (values) => {
-    const response = (await verifySendKard(values.voucherId, Number(route.params["id"]))) as {
+    const response = (await verifySendKard(values.voucherId)) as {
       status: string;
       message: string;
       data: {};
@@ -104,9 +112,28 @@
 <template>
   <div class="grid place-items-center h-[90vh]">
     <Card class="w-[350px]">
-      <CardHeader>
+      <CardHeader class="flex flex-row items-center justify-between">
         <CardTitle>Verify SendKard</CardTitle>
         <CardDescription></CardDescription>
+        <div>
+          <div class="flex w-full justify-end items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+            <DropdownMenu class="bg-background">
+              <DropdownMenuTrigger as-child>
+                <Button variant="secondary" size="icon" class="rounded-full">
+                  <CircleUser class="h-5 w-5" />
+                  <span class="sr-only">Toggle user menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <!-- <DropdownMenuLabel>My Account</DropdownMenuLabel> -->
+                <DropdownMenuSeparator />
+                <ThemeComponent :expand="true" />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="() => userLogout()">Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <form class="w-full space-y-6" @submit="onSubmit">
@@ -121,9 +148,9 @@
                   @input="handleInput"
                   maxlength="19" />
               </FormControl>
-              <FormDescription
-                >Enter the 16-character ID (format: XXXX-XXXX-XXXX-XXXX)</FormDescription
-              >
+              <FormDescription>
+                Enter the 16-character ID (format: XXXX-XXXX-XXXX-XXXX)
+              </FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
