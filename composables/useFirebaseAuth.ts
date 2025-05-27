@@ -26,7 +26,7 @@ export const useFirebaseAuth = () => {
   const { loading } = storeToRefs(feedbackStore);
 
   const userStore = useUserStore();
-  const { userAuth, userRoles, isSuperAdmin } = storeToRefs(userStore);
+  const { userAuth } = storeToRefs(userStore);
 
   const { completeUserProfile } = useAPI();
 
@@ -82,11 +82,10 @@ export const useFirebaseAuth = () => {
     try {
       await setPersistence(auth, browserSessionPersistence);
       const credential = await signInWithEmailAndPassword(auth, email, password);
-
       userAuth.value = credential.user;
       response = { status: "success", message: "Login successful" };
       logEvent(analytics, "login");
-      router.push({ name: "account" });
+      router.push({ name: "verify" });
     } catch (error: any) {
       console.log(error);
       logInErrCase(error.code);
